@@ -30,112 +30,24 @@
     ]
   },
   {
-    "id": "im_new_session",
-    "description": "Start a fresh persistent chat session when the user sends /new.",
+    "id": "im_session_command",
+    "description": "Handle persistent chat session commands when the user sends /session.",
     "enabled": true,
     "consume_on_match": true,
-    "ack": "{{event.source_channel}} new session started",
+    "ack": "{{event.source_channel}} session command handled",
     "match": {
       "event_type": "message",
       "event_key": "text",
       "content_type": "text",
-      "text": "/new",
+      "text": "/session",
       "text_match_rule": "prefix"
     },
     "actions": [
       {
         "type": "call_cap",
-        "cap": "new_chat_session",
+        "cap": "session_command",
         "input": {
-          "alias": "{{match.remainder}}"
-        }
-      },
-      {
-        "type": "send_message",
-        "input": {
-          "channel": "{{event.source_channel}}",
-          "chat_id": "{{event.chat_id}}"
-        }
-      }
-    ]
-  },
-  {
-    "id": "im_list_sessions",
-    "description": "List persistent chat sessions when the user sends /list.",
-    "enabled": true,
-    "consume_on_match": true,
-    "ack": "{{event.source_channel}} session list handled",
-    "match": {
-      "event_type": "message",
-      "event_key": "text",
-      "content_type": "text",
-      "text": "/list",
-      "text_match_rule": "prefix"
-    },
-    "actions": [
-      {
-        "type": "call_cap",
-        "cap": "list_chat_sessions",
-        "input": {}
-      },
-      {
-        "type": "send_message",
-        "input": {
-          "channel": "{{event.source_channel}}",
-          "chat_id": "{{event.chat_id}}"
-        }
-      }
-    ]
-  },
-  {
-    "id": "im_switch_session",
-    "description": "Switch persistent chat sessions when the user sends /switch.",
-    "enabled": true,
-    "consume_on_match": true,
-    "ack": "{{event.source_channel}} session switch handled",
-    "match": {
-      "event_type": "message",
-      "event_key": "text",
-      "content_type": "text",
-      "text": "/switch",
-      "text_match_rule": "prefix"
-    },
-    "actions": [
-      {
-        "type": "call_cap",
-        "cap": "switch_chat_session",
-        "input": {
-          "alias": "{{match.remainder}}"
-        }
-      },
-      {
-        "type": "send_message",
-        "input": {
-          "channel": "{{event.source_channel}}",
-          "chat_id": "{{event.chat_id}}"
-        }
-      }
-    ]
-  },
-  {
-    "id": "im_delete_session",
-    "description": "Delete a non-current persistent chat session when the user sends /delete.",
-    "enabled": true,
-    "consume_on_match": true,
-    "ack": "{{event.source_channel}} session delete handled",
-    "match": {
-      "event_type": "message",
-      "event_key": "text",
-      "content_type": "text",
-      "text": "/delete",
-      "text_match_rule": "prefix"
-    },
-    "actions": [
-      {
-        "type": "call_cap",
-        "cap": "delete_chat_session",
-        "input": {
-          "alias": "{{match.remainder}}"
+          "command": "{{match.remainder}}"
         }
       },
       {

@@ -96,7 +96,8 @@ typedef struct {
 #define CLAW_MEMORY_SESSION_IDX_VERSION 1
 #define CLAW_MEMORY_SESSION_COMPACT_TOOL_TURNS 1
 #define CLAW_MEMORY_SESSION_SIZE_WARNING \
-    "Session history is still too large after compaction. Please create a new conversation by sending the command `/new`."
+    "Session history is still too large after compaction. Please create a new conversation by sending \
+    the command `/session new [name]`, and delete the old session by `/session delete <name>` due to limited storage space."
 
 _Static_assert(sizeof(claw_memory_session_index_header_t) == 8,
                "session history index header size must remain fixed");
