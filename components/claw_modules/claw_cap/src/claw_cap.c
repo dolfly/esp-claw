@@ -89,6 +89,28 @@ static size_t claw_cap_count_used_group_slots_locked(void);
 static esp_err_t claw_cap_ensure_descriptor_capacity_locked(size_t additional_free_slots);
 static esp_err_t claw_cap_ensure_group_capacity_locked(size_t additional_free_slots);
 
+static bool claw_cap_core_user_ctx_is_valid(const claw_cap_core_call_user_ctx_t *user_ctx)
+{
+    return user_ctx && user_ctx->magic == CLAW_CAP_CORE_CALL_USER_CTX_MAGIC;
+}
+
+static void claw_cap_apply_core_user_ctx(claw_cap_call_context_t *ctx,
+                                         const claw_cap_core_call_user_ctx_t *user_ctx)
+{
+    if (!ctx || !claw_cap_core_user_ctx_is_valid(user_ctx)) {
+        return;
+    }
+
+    if (user_ctx->core) {
+        ctx->core = *user_ctx->core;
+    }
+    ctx->caller = user_ctx->caller;
+    ctx->agent_id = user_ctx->agent_id;
+    ctx->agent_type = user_ctx->agent_type;
+    ctx->parent_agent_id = user_ctx->parent_agent_id;
+    ctx->parent_session_id = user_ctx->parent_session_id;
+}
+
 static char *claw_cap_strdup(const char *src)
 {
     size_t len;
@@ -386,11 +408,8 @@ esp_err_t claw_cap_call_from_core(const char *cap_name,
             const claw_cap_core_call_user_ctx_t *call_user_ctx =
                 (const claw_cap_core_call_user_ctx_t *)user_ctx;
 
-            if (call_user_ctx->magic == CLAW_CAP_CORE_CALL_USER_CTX_MAGIC) {
-                if (call_user_ctx->core) {
-                    ctx.core = *call_user_ctx->core;
-                }
-                ctx.caller = call_user_ctx->caller;
+            if (claw_cap_core_user_ctx_is_valid(call_user_ctx)) {
+                claw_cap_apply_core_user_ctx(&ctx, call_user_ctx);
             } else {
                 ctx.core = *((claw_core_handle_t *)user_ctx);
                 ctx.caller = CLAW_CAP_CALLER_AGENT;
@@ -415,7 +434,8 @@ esp_err_t claw_cap_call_from_core(const char *cap_name,
 
 static esp_err_t claw_cap_tools_collect_for_caller(const claw_core_request_t *request,
                                                    claw_core_context_t *out_context,
-                                                   claw_cap_caller_t caller)
+                                                   claw_cap_caller_t caller,
+                                                   void *user_ctx)
 {
     claw_cap_call_context_t ctx = {0};
     char *tools_json = NULL;
@@ -432,6 +452,9 @@ static esp_err_t claw_cap_tools_collect_for_caller(const claw_core_request_t *re
     ctx.target_chat_id = request->target_chat_id;
     ctx.source_cap = request->source_cap;
     ctx.caller = caller;
+    if (claw_cap_core_user_ctx_is_valid((const claw_cap_core_call_user_ctx_t *)user_ctx)) {
+        claw_cap_apply_core_user_ctx(&ctx, (const claw_cap_core_call_user_ctx_t *)user_ctx);
+    }
 
     tools_json = claw_cap_build_llm_tools_json(&ctx, true);
     if (!tools_json || !tools_json[0] || strcmp(tools_json, "[]") == 0) {
@@ -448,16 +471,20 @@ static esp_err_t claw_cap_root_tools_collect(const claw_core_request_t *request,
                                              claw_core_context_t *out_context,
                                              void *user_ctx)
 {
-    (void)user_ctx;
-    return claw_cap_tools_collect_for_caller(request, out_context, CLAW_CAP_CALLER_ROOT_AGENT);
+    return claw_cap_tools_collect_for_caller(request,
+                                            out_context,
+                                            CLAW_CAP_CALLER_ROOT_AGENT,
+                                            user_ctx);
 }
 
 static esp_err_t claw_cap_sub_tools_collect(const claw_core_request_t *request,
                                             claw_core_context_t *out_context,
                                             void *user_ctx)
 {
-    (void)user_ctx;
-    return claw_cap_tools_collect_for_caller(request, out_context, CLAW_CAP_CALLER_SUB_AGENT);
+    return claw_cap_tools_collect_for_caller(request,
+                                            out_context,
+                                            CLAW_CAP_CALLER_SUB_AGENT,
+                                            user_ctx);
 }
 
 const claw_core_context_provider_t claw_cap_root_agent_tools_provider = {
