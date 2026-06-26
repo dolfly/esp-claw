@@ -71,7 +71,7 @@ devices:
         reset_io: -1
         pwdn_io: -1
         vsync_io: 3
-        de_io: -1
+        de_io: 46
         pclk_io: 7
         xclk_io: 5
         xclk_freq: 24000000
@@ -101,7 +101,7 @@ devices:
     chip: qmi8658
     type: custom
     version: 1.0.0
-    init_skip: true
+    init_skip: false
     config:
       i2c_addr: 0x6A
       frequency: 400000
