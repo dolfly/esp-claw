@@ -804,8 +804,12 @@ esp_err_t cap_scheduler_load_items(const char *path, cap_scheduler_item_t *items
     root = cJSON_Parse(buf);
     free(buf);
     if (!cJSON_IsArray(root)) {
-        cJSON_Delete(root);
-        return ESP_ERR_INVALID_RESPONSE;
+        if (root) {
+            cJSON_Delete(root);
+        }
+        *out_count = 0;
+        ESP_LOGW(TAG, "Schedules file %s is not valid JSON array, treating as empty", path);
+        return ESP_OK;
     }
 
     cJSON *node = NULL;
