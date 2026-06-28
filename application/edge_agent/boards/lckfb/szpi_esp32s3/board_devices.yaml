@@ -15,7 +15,7 @@ devices:
       io_spi_config:
         cs_gpio_num: -1
         dc_gpio_num: 39
-        spi_mode: 2
+        spi_mode: 0
         pclk_hz: 40000000
       lcd_panel_config:
         reset_gpio_num: -1
