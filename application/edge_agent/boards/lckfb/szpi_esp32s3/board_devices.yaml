@@ -1,5 +1,15 @@
 version: 1.0.0
 devices:
+  - name: io_expander
+    chip: pca9557
+    type: custom
+    init_skip: false
+    config:
+      i2c_addr: 0x32
+      frequency: 400000
+    peripherals:
+      - name: i2c_master
+
   - name: display_lcd
     type: display_lcd
     sub_type: spi
@@ -15,7 +25,7 @@ devices:
       io_spi_config:
         cs_gpio_num: -1
         dc_gpio_num: 39
-        spi_mode: 0
+        spi_mode: 2
         pclk_hz: 40000000
       lcd_panel_config:
         reset_gpio_num: -1
@@ -51,16 +61,6 @@ devices:
     peripherals:
       - name: i2c_master
         i2c_addr: [0x70]
-
-  - name: io_expander
-    chip: pca9557
-    type: custom
-    init_skip: false
-    config:
-      i2c_addr: 0x32
-      frequency: 400000
-    peripherals:
-      - name: i2c_master
 
   - name: camera
     type: camera

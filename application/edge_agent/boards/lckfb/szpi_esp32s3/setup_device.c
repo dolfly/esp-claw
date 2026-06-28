@@ -43,8 +43,15 @@ esp_err_t lcd_touch_factory_entry_t(const esp_lcd_panel_io_handle_t io,
 }
 #endif
 
+#define BOARD_FW_VERSION "szpi_esp32s3_v0.1"
+
 static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
 {
+    ESP_LOGI(TAG, "============================================");
+    ESP_LOGI(TAG, " Board: szpi_esp32s3 (lckfb 立创实战派)");
+    ESP_LOGI(TAG, " Firmware: " BOARD_FW_VERSION " (" __DATE__ " " __TIME__ ")");
+    ESP_LOGI(TAG, "============================================");
+
     const dev_custom_io_expander_config_t *config = (const dev_custom_io_expander_config_t *)cfg;
     esp_err_t ret;
     void *i2c_bus_handle = NULL;

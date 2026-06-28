@@ -62,6 +62,7 @@ peripherals:
       freq_hz: 5000
       duty: 1023
       duty_resolution: LEDC_TIMER_10_BIT
+      output_invert: true
 
   - name: gpio_boot_button
     type: gpio
