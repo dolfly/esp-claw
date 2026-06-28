@@ -17,6 +17,8 @@
 
 static const char *TAG = "SZPI_ESP32S3_SETUP";
 
+static i2c_master_dev_handle_t s_pca9557_handle = NULL;
+
 esp_err_t lcd_panel_factory_entry_t(esp_lcd_panel_io_handle_t io,
                                     const esp_lcd_panel_dev_config_t *panel_dev_config,
                                     esp_lcd_panel_handle_t *ret_panel)
@@ -75,7 +77,7 @@ static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
         return -1;
     }
 
-    uint8_t out_buf[] = {0x01, 0x00};
+    uint8_t out_buf[] = {0x01, 0x02}; /* P0=0(LCD_CS=active), P1=1(PA_EN=high), P2=0(DVP_PWDN=LOW) */
     ret = i2c_master_transmit(dev_handle, out_buf, sizeof(out_buf), -1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write PCA9557 output register");
@@ -84,7 +86,7 @@ static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
         return -1;
     }
 
-    uint8_t cfg_buf[] = {0x03, 0xF9};
+    uint8_t cfg_buf[] = {0x03, 0xF8};
     ret = i2c_master_transmit(dev_handle, cfg_buf, sizeof(cfg_buf), -1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write PCA9557 config register");
@@ -93,9 +95,8 @@ static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
         return -1;
     }
 
-    i2c_master_bus_rm_device(dev_handle);
-    esp_board_periph_unref_handle(config->peripheral_name);
-    ESP_LOGI(TAG, "PCA9557: IO0(LCD_CS) LOW, IO2(DVP_PWDN) LOW, camera powered on");
+    s_pca9557_handle = dev_handle;
+    ESP_LOGI(TAG, "PCA9557: LCD_CS=LOW(cs active), PA_EN=HIGH(amp on), DVP_PWDN=LOW(camera on)");
     *device_handle = NULL;
     return 0;
 }
@@ -104,6 +105,15 @@ static int io_expander_deinit(void *device_handle)
 {
     (void)device_handle;
     return 0;
+}
+
+esp_err_t io_expander_set_pa_en(bool enable)
+{
+    if (!s_pca9557_handle) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    uint8_t buf[] = {0x01, enable ? 0x02 : 0x00};
+    return i2c_master_transmit(s_pca9557_handle, buf, sizeof(buf), -1);
 }
 
 CUSTOM_DEVICE_IMPLEMENT(io_expander, io_expander_init, io_expander_deinit);
