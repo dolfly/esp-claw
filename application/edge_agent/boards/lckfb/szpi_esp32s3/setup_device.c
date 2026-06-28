@@ -84,7 +84,9 @@ static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
         return -1;
     }
 
-    uint8_t out_buf[] = {0x01, 0x02}; /* P0=0(LCD_CS=active), P1=1(PA_EN=high), P2=0(DVP_PWDN=LOW) */
+    /* P0=0(LCD_CS=active), P1=1(PA_EN=high), P2=1(DVP_PWDN=HIGH=camera power-down)
+     * Camera is held in power-down here; camera_power device releases it before camera init. */
+    uint8_t out_buf[] = {0x01, 0x06};
     ret = i2c_master_transmit(dev_handle, out_buf, sizeof(out_buf), -1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write PCA9557 output register");
@@ -103,7 +105,7 @@ static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
     }
 
     s_pca9557_handle = dev_handle;
-    ESP_LOGI(TAG, "PCA9557: LCD_CS=LOW(cs active), PA_EN=HIGH(amp on), DVP_PWDN=LOW(camera on)");
+    ESP_LOGI(TAG, "PCA9557: LCD_CS=LOW(cs active), PA_EN=HIGH(amp on), DVP_PWDN=HIGH(camera power-down)");
     *device_handle = NULL;
     return 0;
 }
@@ -114,16 +116,60 @@ static int io_expander_deinit(void *device_handle)
     return 0;
 }
 
-esp_err_t io_expander_set_pa_en(bool enable)
+/* Read-modify-write PCA9557 output register to preserve other output bits */
+static esp_err_t io_expander_set_output_bit(int bit, bool set)
 {
     if (!s_pca9557_handle) {
         return ESP_ERR_INVALID_STATE;
     }
-    uint8_t buf[] = {0x01, enable ? 0x02 : 0x00};
-    return i2c_master_transmit(s_pca9557_handle, buf, sizeof(buf), -1);
+    uint8_t reg = 0x01;
+    uint8_t current = 0;
+    esp_err_t ret = i2c_master_transmit_receive(s_pca9557_handle, &reg, 1, &current, 1, -1);
+    if (ret != ESP_OK) return ret;
+    if (set) {
+        current |= (uint8_t)(1 << bit);
+    } else {
+        current &= (uint8_t)(~(1 << bit));
+    }
+    uint8_t out_buf[] = {0x01, current};
+    return i2c_master_transmit(s_pca9557_handle, out_buf, sizeof(out_buf), -1);
+}
+
+esp_err_t io_expander_set_pa_en(bool enable)
+{
+    return io_expander_set_output_bit(1, enable);
+}
+
+esp_err_t io_expander_set_dvp_pwdn(bool powerdown)
+{
+    return io_expander_set_output_bit(2, powerdown);
 }
 
 CUSTOM_DEVICE_IMPLEMENT(io_expander, io_expander_init, io_expander_deinit);
+
+static int camera_power_preinit(void *config, int cfg_size, void **device_handle)
+{
+    (void)config;
+    (void)cfg_size;
+
+    ESP_LOGI(TAG, "Camera power-on reset: PWDN HIGH->LOW");
+
+    io_expander_set_dvp_pwdn(true);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    io_expander_set_dvp_pwdn(false);
+    vTaskDelay(pdMS_TO_TICKS(50));
+
+    *device_handle = NULL;
+    return 0;
+}
+
+static int camera_power_deinit(void *device_handle)
+{
+    (void)device_handle;
+    return 0;
+}
+
+CUSTOM_DEVICE_IMPLEMENT(camera_power, camera_power_preinit, camera_power_deinit);
 
 /* QMI8658 register addresses */
 #define QMI8658_WHO_AM_I    0x00

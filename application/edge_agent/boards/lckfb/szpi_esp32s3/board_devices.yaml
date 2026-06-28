@@ -62,6 +62,11 @@ devices:
       - name: i2c_master
         i2c_addr: [0x70]
 
+  - name: camera_power
+    chip: pca9557
+    type: custom
+    config: {}
+
   - name: camera
     type: camera
     sub_type: dvp

@@ -417,6 +417,21 @@ void app_main(void)
 
     ESP_ERROR_CHECK(app_claw_set_save_config_callback(main_save_claw_config, NULL));
     ESP_ERROR_CHECK(app_claw_start(s_claw_config));
+
+    /* Force emote display refresh after agent subsystem init.
+     * app_claw_start may have disrupted the emote task or display driver,
+     * causing the screen to go black (observed on SZPI-ESP32S3). */
+    {
+        wifi_manager_status_t ws = {0};
+        wifi_manager_get_status(&ws);
+        esp_err_t emote_err = app_claw_set_network_status(ws.sta_connected,
+                                                          ws.ap_active ? ws.ap_ssid : NULL);
+        if (emote_err != ESP_OK) {
+            ESP_LOGW(TAG, "Emote refresh after agent init failed: %s", esp_err_to_name(emote_err));
+        }
+        ESP_LOGI(TAG, "Display refresh: sta_connected=%d ap_active=%d", ws.sta_connected, ws.ap_active);
+    }
+
 #if CONFIG_APP_CLAW_CAP_IM_LOCAL
     ESP_ERROR_CHECK(http_server_webim_bind_im());
 #endif
