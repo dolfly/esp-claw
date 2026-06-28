@@ -18,7 +18,7 @@ peripherals:
         mosi_io_num: 40
         miso_io_num: -1
         sclk_io_num: 41
-        max_transfer_sz: 153600
+        max_transfer_sz: 25600
 
   - name: i2s_audio_out
     type: i2s
