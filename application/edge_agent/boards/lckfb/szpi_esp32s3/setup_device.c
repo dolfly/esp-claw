@@ -10,8 +10,19 @@
 #include "gen_board_device_custom.h"
 #include "driver/i2c_master.h"
 #include "esp_lcd_panel_st7789.h"
-#include "wifi_manager.h"
-#include "app_claw.h"
+/* Forward declarations — these types/functions are defined in components/common/
+ * but are not available in the gen_bmgr_codes include path. */
+typedef struct {
+    bool sta_connected;
+    bool ap_active;
+    bool sta_configured;
+    const char *sta_ip;
+    const char *ap_ip;
+    const char *ap_ssid;
+    const char *mode;
+} wifi_manager_status_t;
+void wifi_manager_get_status(wifi_manager_status_t *status);
+esp_err_t app_claw_set_network_status(bool sta_connected, const char *ap_ssid);
 #if __has_include(<esp_lcd_touch_ft5x06.h>)
 #define HAS_FT5X06  1
 #include "esp_lcd_touch_ft5x06.h"
