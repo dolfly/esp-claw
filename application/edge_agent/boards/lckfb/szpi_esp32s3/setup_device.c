@@ -10,8 +10,7 @@
 #include "gen_board_device_custom.h"
 #include "driver/i2c_master.h"
 #include "esp_lcd_panel_st7789.h"
-#include "wifi_manager.h"
-#include "app_claw.h"
+
 #if __has_include(<esp_lcd_touch_ft5x06.h>)
 #define HAS_FT5X06  1
 #include "esp_lcd_touch_ft5x06.h"
@@ -46,18 +45,6 @@ esp_err_t lcd_touch_factory_entry_t(const esp_lcd_panel_io_handle_t io,
 #endif
 
 #define BOARD_FW_VERSION "szpi_esp32s3_v0.1"
-
-void board_after_agent_init(void)
-{
-    wifi_manager_status_t ws = {0};
-    wifi_manager_get_status(&ws);
-    esp_err_t emote_err = app_claw_set_network_status(ws.sta_connected,
-                                                      ws.ap_active ? ws.ap_ssid : NULL);
-    if (emote_err != ESP_OK) {
-        ESP_LOGW(TAG, "Emote refresh after agent init failed: %s", esp_err_to_name(emote_err));
-    }
-    ESP_LOGI(TAG, "Display refresh: sta_connected=%d ap_active=%d", ws.sta_connected, ws.ap_active);
-}
 
 static int io_expander_init(void *cfg, int cfg_size, void **device_handle)
 {
