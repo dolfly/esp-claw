@@ -20,7 +20,6 @@
 #include "freertos/portmacro.h"
 
 #define LUA_MODULE_LEDC_METATABLE "ledc"
-#define LUA_MODULE_LEDC_DEFAULT_FREQUENCY_HZ 1000U
 #define LUA_MODULE_LEDC_DEFAULT_DUTY_PERCENT 50.0
 #define LUA_MODULE_LEDC_DEFAULT_DUTY_RES_BITS 14
 #define LUA_MODULE_LEDC_MIN_DUTY_RES_BITS 1
@@ -283,13 +282,13 @@ static esp_err_t lua_module_ledc_destroy(lua_module_ledc_ud_t *ud)
 static void lua_module_ledc_parse_config(lua_State *L, int idx, lua_module_ledc_ud_t *config)
 {
     lua_Integer duty_resolution_bits = LUA_MODULE_LEDC_DEFAULT_DUTY_RES_BITS;
+    lua_Integer frequency_hz;
 
     luaL_checktype(L, idx, LUA_TTABLE);
 
     *config = (lua_module_ledc_ud_t) {
         .gpio = -1,
         .speed_mode = LEDC_LOW_SPEED_MODE,
-        .frequency_hz = LUA_MODULE_LEDC_DEFAULT_FREQUENCY_HZ,
         .duty_resolution = (ledc_timer_bit_t)LUA_MODULE_LEDC_DEFAULT_DUTY_RES_BITS,
         .duty_percent = LUA_MODULE_LEDC_DEFAULT_DUTY_PERCENT,
     };
@@ -302,9 +301,10 @@ static void lua_module_ledc_parse_config(lua_State *L, int idx, lua_module_ledc_
     lua_pop(L, 1);
 
     lua_getfield(L, idx, "frequency_hz");
-    if (!lua_isnil(L, -1)) {
-        config->frequency_hz = (uint32_t)luaL_checkinteger(L, -1);
+    if (lua_isnil(L, -1)) {
+        luaL_error(L, "ledc.new: frequency_hz is required");
     }
+    frequency_hz = luaL_checkinteger(L, -1);
     lua_pop(L, 1);
 
     lua_getfield(L, idx, "duty_percent");
@@ -322,9 +322,10 @@ static void lua_module_ledc_parse_config(lua_State *L, int idx, lua_module_ledc_
     if (config->gpio < 0) {
         luaL_error(L, "ledc.new: gpio must be >= 0");
     }
-    if (config->frequency_hz == 0) {
+    if (frequency_hz <= 0 || (uint64_t)frequency_hz > UINT32_MAX) {
         luaL_error(L, "ledc.new: frequency_hz must be > 0");
     }
+    config->frequency_hz = (uint32_t)frequency_hz;
     if (config->duty_percent < 0.0 || config->duty_percent > 100.0) {
         luaL_error(L, "ledc.new: duty_percent must be between 0 and 100");
     }
@@ -410,23 +411,6 @@ static int lua_module_ledc_stop(lua_State *L)
             return luaL_error(L, "ledc stop failed: %s", esp_err_to_name(err));
         }
         ud->running = false;
-    }
-    return 0;
-}
-
-static int lua_module_ledc_set_enabled(lua_State *L)
-{
-    lua_module_ledc_ud_t *ud = lua_module_ledc_get_ud(L, 1);
-    const bool enabled = lua_toboolean(L, 2);
-
-    if (enabled) {
-        lua_settop(L, 1);
-        return lua_module_ledc_start(L);
-    }
-
-    if (ud->running) {
-        lua_settop(L, 1);
-        return lua_module_ledc_stop(L);
     }
     return 0;
 }
@@ -531,8 +515,6 @@ int luaopen_ledc(lua_State *L)
         lua_setfield(L, -2, "set_duty");
         lua_pushcfunction(L, lua_module_ledc_set_frequency);
         lua_setfield(L, -2, "set_frequency");
-        lua_pushcfunction(L, lua_module_ledc_set_enabled);
-        lua_setfield(L, -2, "set_enabled");
         lua_pushcfunction(L, lua_module_ledc_close);
         lua_setfield(L, -2, "close");
     }

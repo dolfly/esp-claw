@@ -7,16 +7,16 @@ servo control.
 
 - Import it with `local ledc = require("ledc")`
 - Create a PWM handle with `local pwm = ledc.new({ gpio = 4, frequency_hz = 50, duty_percent = 7.5 })`
-- Start output with `pwm:start()` or `pwm:set_enabled(true)`
+- Start output with `pwm:start()`
 - Change duty cycle with `pwm:set_duty(percent)`
 - Change frequency with `pwm:set_frequency(hz)`
-- Stop output with `pwm:stop()` or `pwm:set_enabled(false)`
+- Stop output with `pwm:stop()`
 - Release resources with `pwm:close()`
 
 ## Config table
 
 - `gpio`: required output GPIO
-- `frequency_hz`: optional, defaults to `1000`
+- `frequency_hz`: required positive PWM frequency in Hz
 - `duty_percent`: optional, defaults to `50`
 - `duty_resolution_bits`: optional, defaults to `14`
 
